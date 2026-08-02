@@ -504,9 +504,11 @@
 
             </div>
 
-            <!-- Hidden API config — change in one place if your backend moves -->
+            <!-- Hidden API config — empty apiBaseUrl means "same origin as this page".
+                 Set to an absolute URL only if the API lives on a different host
+                 (e.g. "https://api.unicvesity.worldwide").  See README for details. -->
             <script type="application/json" id="app-config">
-            { "apiBaseUrl": "http://127.0.0.1:8000" }
+            { "apiBaseUrl": "" }
             </script>
 
         </div>
@@ -584,13 +586,19 @@
             const submitLabel  = document.getElementById('submit-label');
 
             // Read the API base URL from the in-page config block.
-            // Defaults to the local FastAPI dev server.
-            let API_BASE_URL = 'http://127.0.0.1:8000';
+            //
+            //   ""  → same-origin (recommended when the API is on the same host,
+            //         e.g. behind nginx, or via a Vercel rewrite to FastAPI)
+            //   "https://api.example.com" → absolute URL when API lives elsewhere
+            //
+            // We fall back to the relative root, NOT a hard-coded localhost, so the
+            // page works wherever it's hosted (Vercel, GitHub Pages, your laptop…).
+            let API_BASE_URL = '';
             try {
                 const cfgNode = document.getElementById('app-config');
                 if (cfgNode && cfgNode.textContent.trim()) {
                     const cfg = JSON.parse(cfgNode.textContent);
-                    if (cfg && typeof cfg.apiBaseUrl === 'string' && cfg.apiBaseUrl) {
+                    if (cfg && typeof cfg.apiBaseUrl === 'string') {
                         API_BASE_URL = cfg.apiBaseUrl.replace(/\/+$/, '');
                     }
                 }
@@ -609,19 +617,40 @@
             }
 
             async function submitLead(payload) {
-                const url = `${API_BASE_URL}/api/leads`;
-                const res = await fetch(url, {
-                    method:  'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body:    JSON.stringify(payload),
-                });
+                // Resolve URL — if API_BASE_URL is empty, fetch() uses the page's
+                // own origin, so "/api/leads" hits whatever's serving this HTML.
+                const path = '/api/leads';
+                const url = API_BASE_URL ? `${API_BASE_URL}${path}` : path;
+
+                let res;
+                try {
+                    res = await fetch(url, {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body:    JSON.stringify(payload),
+                    });
+                } catch (networkErr) {
+                    // The most common real-world causes — surface them clearly.
+                    const where = API_BASE_URL || '(same origin as this page)';
+                    let msg = `Couldn't reach the API at ${where}.`;
+                    if (location.protocol === 'file:') {
+                        msg = 'This page was opened from disk (file://). Browsers block fetch() from file URLs — open it from a web server.';
+                    } else if (networkErr && /Failed to fetch/i.test(networkErr.message)) {
+                        msg = `Couldn't reach the API (${where}). This usually means CORS is blocking the request, the API is offline, or you're testing without a reverse proxy.`;
+                    } else if (networkErr) {
+                        msg = `Network error: ${networkErr.message}`;
+                    }
+                    const e = new Error(msg);
+                    e.network = true;
+                    throw e;
+                }
 
                 let detail = null;
                 try { detail = await res.json(); } catch (_) { /* non-JSON */ }
 
                 if (!res.ok) {
                     // FastAPI returns {detail: "..."} or {detail: [{loc, msg}, ...]}
-                    let msg = 'We couldn\'t submit your details. Please try again.';
+                    let msg = `Server returned ${res.status}.`;
                     if (detail) {
                         if (typeof detail.detail === 'string') msg = detail.detail;
                         else if (Array.isArray(detail.detail) && detail.detail[0]?.msg) msg = detail.detail[0].msg;

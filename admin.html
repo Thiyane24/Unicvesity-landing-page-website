@@ -188,10 +188,13 @@
         'use strict';
 
         // ---- API config (same shape as landing page) ----
-        let API_BASE_URL = 'http://127.0.0.1:8000';
+        // ""  → same-origin. Set to an absolute URL if the API is hosted elsewhere.
+        let API_BASE_URL = '';
         try {
             const cfg = JSON.parse(document.getElementById('app-config-admin')?.textContent || '{}');
-            if (cfg?.apiBaseUrl) API_BASE_URL = cfg.apiBaseUrl.replace(/\/+$/, '');
+            if (typeof cfg?.apiBaseUrl === 'string') {
+                API_BASE_URL = cfg.apiBaseUrl.replace(/\/+$/, '');
+            }
         } catch (_) { /* default */ }
 
         function setApiBaseUrl(url) {
@@ -338,9 +341,10 @@
     })();
     </script>
 
-    <!-- Hidden API config — change in one place if your backend moves -->
+    <!-- Hidden API config — empty apiBaseUrl means "same origin as this page".
+         Set to an absolute URL only if the API lives on a different host. -->
     <script type="application/json" id="app-config-admin">
-    { "apiBaseUrl": "http://127.0.0.1:8000" }
+    { "apiBaseUrl": "" }
     </script>
 </body>
 </html>

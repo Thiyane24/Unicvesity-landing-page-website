@@ -18,7 +18,10 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 # otherwise the API rejects the submission with a 422.
 # ---------------------------------------------------------------------
 ALLOWED_DESTINATIONS = {
-    "UK", "Malaysia", "Australia", "Canada", "Europe", "Other",
+    "UK", "USA", "Australia", "Canada", "Europe", "Other",
+    # Frontend dropdown <option value="MY"> maps Malaysia onto the FULL NAME
+    # so it survives unchanged from other destinations in the DB.
+    "MY",
 }
 
 
