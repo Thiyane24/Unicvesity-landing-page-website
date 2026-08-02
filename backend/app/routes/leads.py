@@ -64,6 +64,7 @@ def submit_lead(
         email       = str(payload.email),
         destination = payload.destination,
         source      = payload.source,
+        lang        = (payload.lang or None) and (payload.lang[:8].lower() or None),
         ip_address  = ip_address,
         user_agent  = (user_agent[:255] if user_agent else None),
     )
@@ -165,12 +166,12 @@ def export_leads_csv(
     writer = csv.writer(buf)
     writer.writerow([
         "id", "name", "email", "whatsapp", "destination",
-        "source", "ip_address", "user_agent", "created_at",
+        "source", "lang", "ip_address", "user_agent", "created_at",
     ])
     for l in leads:
         writer.writerow([
             l.id, l.name, l.email, l.whatsapp, l.destination,
-            l.source, l.ip_address, l.user_agent,
+            l.source, l.lang, l.ip_address, l.user_agent,
             l.created_at.isoformat() if l.created_at else "",
         ])
 

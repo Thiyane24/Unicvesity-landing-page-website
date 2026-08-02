@@ -31,6 +31,11 @@ class Lead(Base):
     ip_address = Column(String(64), nullable=True)
     notes = Column(Text, nullable=True)
 
+    # ISO 639-1 code of the language the user had the form in when they
+    # submitted.  'en' or 'pt' today; kept short so we can add more later
+    # without a migration.
+    lang = Column(String(8), nullable=True, index=True)
+
     # Lifecycle
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     updated_at = Column(

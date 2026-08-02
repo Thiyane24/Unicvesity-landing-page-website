@@ -55,6 +55,7 @@ class LeadCreate(LeadBase):
     """Payload posted by the public landing page."""
 
     source: Optional[str] = Field(default=None, max_length=80)
+    lang:   Optional[str] = Field(default=None, max_length=8)
 
 
 class LeadRead(LeadBase):
@@ -64,6 +65,7 @@ class LeadRead(LeadBase):
 
     id:         int
     source:     Optional[str] = None
+    lang:       Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

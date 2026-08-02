@@ -12,11 +12,24 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Apply persisted theme BEFORE first paint -->
+    <script>
+    (function () {
+        try {
+            var t = localStorage.getItem('unicvesity_theme');
+            if (t === 'dark' || (!t && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        } catch (_) {}
+    })();
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
     <!-- Tailwind config — same brand as the landing page -->
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
@@ -42,7 +55,7 @@
     </script>
 
     <style>
-        body { font-family: 'Poppins', sans-serif; background: #fdfaf3; color: #1c2a48; }
+        body { font-family: 'Poppins', sans-serif; background: #fdfaf3; color: #1c2a48; transition: background-color .2s ease, color .2s ease; }
         .brand-logo { height: 3rem; width: auto; }
         .gold-divider {
             height: 1px;
@@ -58,6 +71,26 @@
             border-radius:50%; animation: spin 0.8s linear infinite;
             vertical-align:-0.2em; margin-right:.5em;
         }
+
+        /* Dark mode for admin (same palette as landing) */
+        html.dark body { color: #fdfaf3; background: #0a1428; }
+        html.dark .bg-ivory-50 { background-color: #0a1428 !important; }
+        html.dark .bg-white { background-color: #13203d !important; }
+        html.dark .bg-ivory-50\/85 { background-color: rgba(10,20,40,0.85) !important; }
+        html.dark .text-navy-600, html.dark .text-navy-500, html.dark .text-navy-300 { color: #d4dae8 !important; }
+        html.dark .text-navy-700 { color: #fdfaf3 !important; }
+        html.dark .border-navy-100 { border-color: #2b3a5c !important; }
+        html.dark .border-gold-400\/40, html.dark .border-gold-400\/50, html.dark .border-gold-400\/30 { border-color: rgba(212,175,55,0.40) !important; }
+        html.dark .text-gold-600 { color: #dcb94f !important; }
+        html.dark .text-gold-700 { color: #b8962d !important; }
+        html.dark .text-gold-500 { color: #e9d282 !important; }
+        html.dark .bg-gold-400\/15 { background-color: rgba(212,175,55,0.18) !important; }
+        html.dark .placeholder-navy-300::placeholder { color: #7e89a8 !important; }
+        html.dark .shadow-soft { box-shadow: 0 10px 40px -10px rgba(0,0,0,0.45) !important; }
+        html.dark .shadow-card { box-shadow: 0 25px 60px -20px rgba(0,0,0,0.55) !important; }
+        html.dark .hover\:bg-ivory-50\/60:hover { background-color: rgba(212,175,55,0.08) !important; }
+        html.dark .divide-navy-50\/80 > * + * { border-color: rgba(212,175,55,0.10) !important; }
+        html.dark .bg-navy-50 { background-color: #1c2a48 !important; }
     </style>
 </head>
 
@@ -84,6 +117,12 @@
                    class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gold-400 hover:bg-gold-500 text-navy-700 text-sm font-semibold shadow-gold transition">
                     <i class="fa-solid fa-file-csv"></i> CSV
                 </a>
+                <button id="theme-toggle" type="button"
+                        aria-label="Toggle dark mode"
+                        title="Toggle dark mode"
+                        class="inline-flex items-center justify-center w-10 h-10 rounded-lg border border-gold-400/50 bg-white hover:border-gold-500 text-navy-700 shadow-soft transition focus:outline-none focus:ring-4 focus:ring-gold-400/40">
+                    <i id="theme-toggle-icon" class="fa-solid fa-moon text-gold-600" aria-hidden="true"></i>
+                </button>
             </div>
         </div>
     </header>
@@ -155,6 +194,7 @@
                                 <th class="text-left font-semibold px-4 py-3">WhatsApp</th>
                                 <th class="text-left font-semibold px-4 py-3">Destination</th>
                                 <th class="text-left font-semibold px-4 py-3">Source</th>
+                                <th class="text-left font-semibold px-4 py-3">Lang</th>
                             </tr>
                         </thead>
                         <tbody id="leads-tbody" class="divide-y divide-navy-50/80">
@@ -232,8 +272,43 @@
         function showDashboard() {
             authCard.classList.add('hidden');
             dashboard.classList.remove('hidden');
-            // Update the export link with the current token so admins can save it.
-            exportLink.href = `${API_BASE_URL}/api/admin/leads.csv?_t=${encodeURIComponent(ADMIN_TOKEN)}`;
+        }
+
+        // The CSV link uses fetch() with the Authorization header (the backend
+        // only accepts Bearer auth — it ignores ?_t=... query params). We
+        // download as a Blob so the filename from Content-Disposition is preserved.
+        async function downloadCsv() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/admin/leads.csv`, {
+                    headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` },
+                });
+                if (res.status === 401) {
+                    authError.textContent = 'Token is invalid or expired. Paste it again below.';
+                    authError.classList.remove('hidden');
+                    localStorage.removeItem('unicvesity_admin_token');
+                    ADMIN_TOKEN = '';
+                    showAuth();
+                    return;
+                }
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const blob = await res.blob();
+                // Filename from Content-Disposition, or fallback
+                const disp = res.headers.get('Content-Disposition') || '';
+                const m = /filename="?([^"]+)"?/i.exec(disp);
+                const filename = m ? m[1] : `leads-${new Date().toISOString().slice(0,10)}.csv`;
+                // Trigger download
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                authError.textContent = `CSV download failed: ${err.message}`;
+                authError.classList.remove('hidden');
+            }
         }
         function showAuth() {
             authCard.classList.remove('hidden');
@@ -272,6 +347,10 @@
                 for (const l of leads) {
                     const tr = document.createElement('tr');
                     tr.className = 'hover:bg-ivory-50/60 transition-colors';
+                    const langLabel = l.lang ? l.lang.toUpperCase() : '—';
+                    const langBadge = l.lang
+                        ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-navy-50 text-navy-700 text-xs font-semibold">${escapeHtml(langLabel)}</span>`
+                        : `<span class="text-navy-300 text-xs">—</span>`;
                     tr.innerHTML = `
                         <td class="px-4 py-3 whitespace-nowrap text-navy-500">${formatDate(l.created_at)}</td>
                         <td class="px-4 py-3 font-semibold text-navy-700">${escapeHtml(l.name)}</td>
@@ -279,6 +358,7 @@
                         <td class="px-4 py-3 whitespace-nowrap"><a class="text-gold-600 hover:text-gold-700 hover:underline" href="https://wa.me/${escapeHtml(l.whatsapp.replace(/[^\d+]/g,''))}" target="_blank" rel="noopener">${escapeHtml(l.whatsapp)}</a></td>
                         <td class="px-4 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded-full bg-gold-400/15 text-gold-700 text-xs font-semibold">${escapeHtml(l.destination)}</span></td>
                         <td class="px-4 py-3 text-navy-500 text-xs">${escapeHtml(l.source || '—')}</td>
+                        <td class="px-4 py-3">${langBadge}</td>
                     `;
                     leadsTbody.appendChild(tr);
                 }
@@ -290,7 +370,7 @@
                     authError.textContent = 'Token is invalid or expired. Paste it again below.';
                     authError.classList.remove('hidden');
                 } else {
-                    leadsTbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-600">Couldn't reach API: ${err.message}</td></tr>`;
+                    leadsTbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-red-600">Couldn't reach API: ${err.message}</td></tr>`;
                 }
             } finally {
                 loadingRow.classList.add('hidden');
@@ -331,12 +411,40 @@
         refreshBtn.addEventListener('click', loadLeads);
         applyFiltersBtn.addEventListener('click', loadLeads);
         searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadLeads(); });
+        exportLink.addEventListener('click', (e) => { e.preventDefault(); downloadCsv(); });
 
         // If we already have a token, try the API on load.
         if (ADMIN_TOKEN) {
             loadLeads().then(showDashboard).catch(() => showAuth());
         } else {
             showAuth();
+        }
+
+        // ---- Dark mode toggle (persists across landing + admin via localStorage) ----
+        const THEME_KEY = 'unicvesity_theme';
+        function applyTheme(theme) {
+            document.documentElement.classList.toggle('dark', theme === 'dark');
+            const icon = document.getElementById('theme-toggle-icon');
+            if (icon) {
+                icon.className = (theme === 'dark')
+                    ? 'fa-solid fa-sun text-gold-400'
+                    : 'fa-solid fa-moon text-gold-600';
+            }
+        }
+        function currentTheme() {
+            const saved = localStorage.getItem(THEME_KEY);
+            if (saved === 'dark' || saved === 'light') return saved;
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        // Sync icon with the class the head-script already applied
+        applyTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        const themeBtn = document.getElementById('theme-toggle');
+        if (themeBtn) {
+            themeBtn.addEventListener('click', () => {
+                const next = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+                localStorage.setItem(THEME_KEY, next);
+                applyTheme(next);
+            });
         }
     })();
     </script>
