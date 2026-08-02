@@ -32,8 +32,9 @@ services:
         value: UnicvesityAdminToken123
       # ---- Supabase Postgres (Supavisor pooler, transaction mode, port 6543) ----
       # SQLAlchemy URL format: postgresql+psycopg://user:pass@host:port/db
+      # sslmode=require is mandatory for the Supavisor pooler.
       - key: DATABASE_URL
-        value: postgresql+psycopg://postgres.hanuoushtcafdfilqcyh:Unicvesity1!@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
+        value: postgresql+psycopg://postgres.hanuoushtcafdfilqcyh:Unicvesity1!@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?sslmode=require
       - key: WORKERS
         value: "2"
       - key: PORT

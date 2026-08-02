@@ -37,7 +37,8 @@ FROM python:3.12-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PORT=8000 \
-    WORKERS=2
+    WEB_CONCURRENCY=2 \
+    GUNICORN_TIMEOUT=60
 
 # Install only what we need at runtime: curl for healthchecks, tini for
 # clean SIGTERM propagation (FastAPI + Postgres must shut down gracefully).
@@ -70,4 +71,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 # tini reaps zombies and forwards signals; gunicorn (uvicorn worker) runs the API.
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["sh", "-c", "gunicorn -k uvicorn.workers.UvicornWorker -w ${WORKERS} -b 0.0.0.0:${PORT} app.main:app --access-logfile - --error-logfile -"]
+CMD ["sh", "-c", "gunicorn -k uvicorn.workers.UvicornWorker -w ${WEB_CONCURRENCY} -b 0.0.0.0:${PORT} --timeout ${GUNICORN_TIMEOUT} --graceful-timeout 30 app.main:app --access-logfile - --error-logfile -"]
