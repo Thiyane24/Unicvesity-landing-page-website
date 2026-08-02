@@ -1,0 +1,82 @@
+Here is a complete, full-stack `README.md` that covers the entire architecture—frontend, backend, database, and the business strategy behind it.
+
+This makes the repository look like it was built by a senior engineer who understands both the code and the business goals. Copy and paste this directly into your repo!
+
+---
+
+```markdown
+# Unicvesity Worldwide - Full-Stack Lead Generation System 🌍🎓
+
+A complete, end-to-end lead generation architecture built for Unicvesity Worldwide. This system captures mobile and social media traffic (Instagram Reels, TikTok) via a high-converting frontend landing page and routes the data through a secure, serverless backend API for CRM integration.
+
+## 🏗️ System Architecture
+
+This project is divided into a decoupled Frontend (Client) and Backend (API) to ensure maximum speed, security, and scalability.
+
+### 1. The Frontend (User Interface)
+*   **Tech Stack:** HTML5, Vanilla JavaScript (ES6+), Tailwind CSS.
+*   **Purpose:** A "zero-distraction" landing page optimized for conversion. It features a premium black-and-gold UI, a custom-built video player that bypasses browser autoplay/mute restrictions, and a sleek lead capture form.
+*   **Hosting:** Designed to be hosted on Edge networks like GitHub Pages or Vercel.
+
+### 2. The Backend API (Data Pipeline)
+*   **Tech Stack:** Python (FastAPI) / Node.js (Express) deployed as Serverless Functions.
+*   **Purpose:** Receives the JSON payload from the frontend, strictly validates the data (Name, Email, WhatsApp, Destination), handles CORS policies, and securely processes the lead.
+*   **Hosting:** Deployed on Vercel Serverless.
+
+### 3. The Database / CRM Integration
+*   **Purpose:** The backend is engineered to instantly route validated leads into a structured SQL database or directly into Unicvesity's CRM/Automated WhatsApp API via webhooks.
+
+## 🚀 Key Features
+
+*   **Algorithmic Marketing Sync:** The frontend video pacing and UI are explicitly designed to match short-form social media content (IG Reels) for high retention.
+*   **Anti-Leaky Bucket Strategy:** Removes standard corporate website navigation to force a single action: Form Submission.
+*   **Custom Video Overlay:** A premium gold UI play button that manages native browser audio security, ensuring the promo video always plays with sound upon interaction.
+*   **Asynchronous Form Submission:** Lead data is POSTed to the API without reloading the page, triggering a sleek success UI and loading animations for premium UX.
+*   **CORS & Security:** Backend is strictly configured to only accept cross-origin requests from the approved frontend domain.
+
+## 💻 Local Development Setup
+
+### Running the Frontend
+1. Clone the repository:
+   ```bash
+   git clone [https://github.com/Thiyane24/Unicvesity-landing-page-website.git](https://github.com/Thiyane24/Unicvesity-landing-page-website.git)
+   cd Unicvesity-landing-page-website
+
+```
+
+2. Start a local server to prevent CORS/file path errors:
+* **VS Code:** Use the *Live Server* extension.
+* **Python:** Run `python -m http.server 8000`
+
+
+3. Ensure `0802.mp4` and webp image assets are in the root directory.
+
+### Running the Backend (Local API)
+
+1. Navigate to your backend directory (if separated):
+```bash
+cd api
+
+```
+
+
+2. Install dependencies (e.g., `pip install fastapi uvicorn` or `npm install`).
+3. Start the local dev server:
+* **FastAPI:** `uvicorn main:app --reload`
+
+
+4. Update the `API_BASE_URL` in the frontend `index.html` script to point to `http://127.0.0.1:8000` (or your local port).
+
+## 🌍 Deployment
+
+* **Frontend Deployment:** Push to the `main` branch and enable **GitHub Pages** (or link to Vercel).
+* **Backend Deployment:** Link the backend directory to **Vercel**. Ensure the `vercel.json` file is correctly configured for API routing.
+* **CORS Configuration:** Once both are live, update the backend CORS settings to explicitly allow the live GitHub Pages URL, and update the frontend `fetch` request to target the live Vercel API URL.
+
+## 🛡️ License
+
+This codebase and system architecture are proprietary and built specifically for Unicvesity Worldwide.
+
+```
+
+```
