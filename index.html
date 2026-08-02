@@ -649,6 +649,25 @@
                 try { detail = await res.json(); } catch (_) { /* non-JSON */ }
 
                 if (!res.ok) {
+                    // 404 here almost always means no rewrite is configured in
+                    // vercel.json yet (i.e. the backend hasn't been deployed,
+                    // or the proxy points nowhere). Treat it as a config error
+                    // rather than a generic server fault.
+                    if (res.status === 404) {
+                        const e = new Error(
+                            'The lead-capture API is not configured on this site yet. ' +
+                            'Add a `rewrites` block to vercel.json that points /api/* at your FastAPI host. ' +
+                            'See README.md → "Wire Vercel to the backend".'
+                        );
+                        e.notConfigured = true;
+                        throw e;
+                    }
+                    if (res.status === 502 || res.status === 503 || res.status === 504) {
+                        throw new Error(
+                            `The backend gateway/proxy is failing (${res.status}). ` +
+                            'This usually means vercel.json points /api/* at a host that is offline or unreachable.'
+                        );
+                    }
                     // FastAPI returns {detail: "..."} or {detail: [{loc, msg}, ...]}
                     let msg = `Server returned ${res.status}.`;
                     if (detail) {
