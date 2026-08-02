@@ -63,6 +63,33 @@ def _startup() -> None:
 
     Base.metadata.create_all(bind=engine)
 
+    # ------------------------------------------------------------------
+    # Lightweight in-app migration: add new columns to existing tables.
+    # SQLAlchemy's create_all() only creates tables that don't exist; it
+    # does NOT add columns to tables that already exist.  When we add a
+    # field to app/models.py, we add a matching ADD COLUMN IF NOT EXISTS
+    # line here so old databases get upgraded in place on next deploy.
+    #
+    # The IF NOT EXISTS clause makes these idempotent (safe to re-run).
+    # IF NOT EXISTS is supported on Postgres ≥ 9.6 and SQLite ≥ 3.35.
+    # ------------------------------------------------------------------
+    if settings.DATABASE_URL.startswith("postgresql"):
+        _migrations_postgres = [
+            "ALTER TABLE leads ADD COLUMN IF NOT EXISTS lang VARCHAR(8)",
+        ]
+    else:
+        # SQLite: ADD COLUMN doesn't support IF NOT EXISTS pre-3.35, so we
+        # check first via PRAGMA.  Cheap to run.
+        _migrations_postgres = []
+
+    try:
+        with engine.begin() as conn:
+            for stmt in _migrations_postgres:
+                conn.execute(text(stmt))
+                logger.info("migration applied: %s", stmt)
+    except Exception as exc:  # pragma: no cover
+        logger.warning("migration step failed (non-fatal): %s", exc)
+
     # Quick DB ping so any DB-down issues fail loudly at boot instead of on first request
     try:
         with engine.connect() as conn:
