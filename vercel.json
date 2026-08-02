@@ -1,18 +1,18 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://unicvesity-api.onrender.com/api/$1"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy",       "value": "strict-origin-when-cross-origin" }
+        { "key": "Referrer-Policy",        "value": "strict-origin-when-cross-origin" }
       ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "https://api.unicvesity-worldwide.example.com/api/$1"
     }
   ],
   "cleanUrls": true,

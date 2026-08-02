@@ -23,7 +23,7 @@ python-multipart==0.0.9
 # Production server (used by the Dockerfile CMD)
 gunicorn==23.0.0
 
-# Optional: psycopg2 binary if you wire in the Postgres container.
-# Uncomment when you switch the DATABASE_URL to postgresql+psycopg://...
-# psycopg2-binary==2.9.9
+# Postgres driver — required for the Supabase DATABASE_URL.
+# We use psycopg (v3) which is the URL scheme above references (postgresql+psycopg).
+psycopg[binary]==3.2.3
 

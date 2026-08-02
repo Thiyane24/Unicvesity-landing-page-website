@@ -1,0 +1,40 @@
+# =====================================================================
+# Render Blueprint — Unicvesity Worldwide Lead Capture API
+# =====================================================================
+# Drop this file at the repo root, push to GitHub, then go to
+#   https://render.com/blueprints  →  New Blueprint Instance
+# Render reads this file and provisions the service automatically.
+#
+# Free-tier note: SQLite data is wiped on every free-tier redeploy.
+# For real persistence, add a Postgres service (commented below) and
+# uncomment DATABASE_URL to point at it.
+# =====================================================================
+
+services:
+  # ---------------------------------------------------------------
+  # FastAPI lead-capture API
+  # ---------------------------------------------------------------
+  - type: web
+    name: unicvesity-api
+    runtime: docker
+    rootDir: backend                       # Render builds from backend/Dockerfile
+    plan: free
+    region: oregon                         # closest free region to most users
+    branch: main
+    healthCheckPath: /api/health
+    autoDeploy: true
+
+    envVars:
+      # ---- Required ----
+      - key: ALLOWED_ORIGINS
+        value: https://unicvesity-landing-page-website-dem-eight.vercel.app
+      - key: ADMIN_TOKEN
+        value: UnicvesityAdminToken123
+      # ---- Supabase Postgres (Supavisor pooler, transaction mode, port 6543) ----
+      # SQLAlchemy URL format: postgresql+psycopg://user:pass@host:port/db
+      - key: DATABASE_URL
+        value: postgresql+psycopg://postgres.hanuoushtcafdfilqcyh:Unicvesity1!@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
+      - key: WORKERS
+        value: "2"
+      - key: PORT
+        value: "8000"
