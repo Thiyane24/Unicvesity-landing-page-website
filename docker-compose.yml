@@ -1,0 +1,107 @@
+# =====================================================================
+# Unicvesity Worldwide — production-ready compose stack
+# =====================================================================
+# One file, three services:
+#   - api       FastAPI lead capture API + healthchecks
+#   - frontend  nginx serving index.html / admin.html, reverse-proxying /api
+#   - db        Postgres 16 (opt-in via --profile postgres)
+#
+# Persistent data:
+#   - api_data    SQLite file (default profile) OR
+#   - pg_data     Postgres cluster (when --profile postgres is set)
+#
+# Usage:
+#   1) cp .env.example .env   # then edit secrets
+#   2) docker compose build
+#   3) docker compose up -d
+#   4) open http://localhost   (landing)
+#         http://localhost/admin.html?token=<ADMIN_TOKEN>
+#
+# Switch to Postgres (recommended for prod):
+#   docker compose --profile postgres up -d
+# =====================================================================
+
+services:
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: unicvesity/api:latest
+    container_name: unicvesity-api
+    restart: unless-stopped
+    environment:
+      # Database — switch to "postgresql+psycopg://leads:${DB_PASSWORD}@db:5432/leads"
+      # when running with `--profile postgres`.
+      DATABASE_URL: ${DATABASE_URL}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      ADMIN_TOKEN: ${ADMIN_TOKEN}
+      WORKERS: ${API_WORKERS:-2}
+      PORT: "8000"
+    volumes:
+      # SQLite persistent storage (named volume survives `docker compose down`).
+      - api_data:/app/data
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "/app/healthcheck.py", "http://127.0.0.1:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - unicvesity_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # API_UPSTREAM is the in-network address of the api service
+        API_UPSTREAM: api:8000
+    image: unicvesity/frontend:latest
+    container_name: unicvesity-frontend
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    networks:
+      - unicvesity_net
+
+  # Postgres (opt-in). Activate with:
+  #   docker compose --profile postgres up -d
+  # and set DATABASE_URL to the postgres connection string above.
+  db:
+    image: postgres:16-alpine
+    container_name: unicvesity-db
+    profiles: ["postgres"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: leads
+      POSTGRES_USER: leads
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U leads -d leads"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    expose:
+      - "5432"
+    networks:
+      - unicvesity_net
+
+volumes:
+  api_data:
+    name: unicvesity_api_data
+  pg_data:
+    name: unicvesity_pg_data
+
+networks:
+  unicvesity_net:
+    name: unicvesity_net
+    driver: bridge

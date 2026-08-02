@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.env
+.envrc
+
+# Build / test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+*.egg-info/
+dist/
+build/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+backend/data/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Docker runtime files (just in case)
+**/docker-compose.override.yml
+**/*.pid
+
+# Logs
+*.log

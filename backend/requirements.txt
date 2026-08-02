@@ -1,0 +1,29 @@
+# Unicvesity Worldwide — Lead Capture Backend
+# ============================================
+# FastAPI app that saves landing-page leads to a database
+# and exposes admin endpoints to view/export them.
+#
+# Install:
+#   pip install -r requirements.txt
+#
+# Run (dev):
+#   uvicorn app.main:app --reload --port 8000
+#
+# Run (prod-ish):
+#   uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+sqlalchemy==2.0.34
+pydantic==2.9.2
+pydantic-settings==2.5.2
+python-dotenv==1.0.1
+python-multipart==0.0.9
+
+# Production server (used by the Dockerfile CMD)
+gunicorn==23.0.0
+
+# Optional: psycopg2 binary if you wire in the Postgres container.
+# Uncomment when you switch the DATABASE_URL to postgresql+psycopg://...
+# psycopg2-binary==2.9.9
+

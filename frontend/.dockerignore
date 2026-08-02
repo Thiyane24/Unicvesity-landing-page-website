@@ -1,0 +1,7 @@
+# Don't ship dev junk to the image.
+.DS_Store
+*.log
+.vscode/
+.idea/
+node_modules/
+*.md

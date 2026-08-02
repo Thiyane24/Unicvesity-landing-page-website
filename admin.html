@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color"="#D4AF37" />
+    <title>Unicvesity Worldwide — Admin · Leads</title>
+
+    <!-- Assets -->
+    <link rel="icon" type="image/webp" href="favicon.webp" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+    <!-- Tailwind config — same brand as the landing page -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans:    ['Poppins', 'system-ui', 'sans-serif'],
+                        display: ['"Cormorant Garamond"', 'serif'],
+                    },
+                    colors: {
+                        ivory: { 50:'#fdfaf3', 100:'#f8f1e0', 200:'#f1e6c8', 300:'#e7d4a4' },
+                        navy:  { 50:'#eef0f7', 100:'#d4dae8', 300:'#7e89a8', 500:'#2b3a5c',
+                                 600:'#1c2a48', 700:'#13203d', 800:'#0c172e', 900:'#06101f' },
+                        gold:  { 50:'#fbf6e4', 100:'#f3e8b9', 200:'#e9d282', 300:'#dcb94f',
+                                 400:'#D4AF37', 500:'#b8962d', 600:'#937624', 700:'#6a561a' },
+                    },
+                    boxShadow: {
+                        gold:    '0 10px 30px -10px rgba(212, 175, 55, 0.45)',
+                        'gold-lg':'0 20px 60px -15px rgba(212, 175, 55, 0.50)',
+                        soft:    '0 10px 40px -10px rgba(19, 32, 61, 0.10)',
+                        card:    '0 25px 60px -20px rgba(19, 32, 61, 0.18)',
+                    },
+                },
+            },
+        };
+    </script>
+
+    <style>
+        body { font-family: 'Poppins', sans-serif; background: #fdfaf3; color: #1c2a48; }
+        .brand-logo { height: 3rem; width: auto; }
+        .gold-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(212,175,55,0.55), transparent);
+        }
+        .gold-blob {
+            background: radial-gradient(circle, rgba(212,175,55,0.20) 0%, rgba(212,175,55,0) 65%);
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner {
+            display:inline-block; width:1.1em; height:1.1em;
+            border:2px solid rgba(28,42,72,0.25); border-top-color:#1c2a48;
+            border-radius:50%; animation: spin 0.8s linear infinite;
+            vertical-align:-0.2em; margin-right:.5em;
+        }
+    </style>
+</head>
+
+<body class="bg-ivory-50 text-navy-600 min-h-screen">
+    <!-- ========== Header ========== -->
+    <header class="bg-ivory-50/85 backdrop-blur-md border-b border-gold-400/40 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 sm:h-24 flex items-center justify-between">
+            <a href="index.html" class="flex items-center" aria-label="Back to landing">
+                <img src="logo.webp" alt="Unicvesity Worldwide"
+                     class="brand-logo"
+                     onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='Screenshot_2026-08-02_175820-removebg-preview.png';}" />
+                <span class="ml-3 hidden sm:inline text-sm text-navy-500">/ Admin</span>
+            </a>
+
+            <div class="flex items-center gap-2">
+                <span id="lead-count" class="hidden sm:inline-flex items-center px-3 py-1 rounded-full bg-white border border-gold-400/50 text-navy-700 text-xs font-semibold shadow-soft">
+                    <i class="fa-solid fa-database mr-2 text-gold-600"></i>
+                    <span id="lead-count-value">0 leads</span>
+                </span>
+                <button id="refresh-btn" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-gold-400/50 text-navy-700 text-sm font-medium hover:border-gold-500 shadow-soft transition">
+                    <i class="fa-solid fa-rotate-right"></i> Refresh
+                </button>
+                <a id="export-link" href="#"
+                   class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gold-400 hover:bg-gold-500 text-navy-700 text-sm font-semibold shadow-gold transition">
+                    <i class="fa-solid fa-file-csv"></i> CSV
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========== Main ========== -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative overflow-hidden">
+        <div aria-hidden="true" class="pointer-events-none absolute -top-32 -right-32 w-[26rem] h-[26rem] gold-blob"></div>
+
+        <!-- Login / token prompt -->
+        <section id="auth-card" class="max-w-md mx-auto mt-10">
+            <div class="bg-white rounded-3xl shadow-card border border-gold-400/40 p-8 sm:p-10 text-center">
+                <div class="mx-auto w-16 h-16 rounded-full bg-gold-400/20 border border-gold-400/50 flex items-center justify-center mb-5">
+                    <i class="fa-solid fa-lock text-gold-600 text-2xl"></i>
+                </div>
+                <h2 class="font-display italic font-bold text-navy-700 text-2xl">Admin access</h2>
+                <p class="mt-2 text-navy-500 text-sm">Paste your admin token to view leads.</p>
+
+                <div class="mt-6 text-left">
+                    <label for="token-input" class="block text-sm font-semibold text-navy-700 mb-2">Admin token</label>
+                    <input id="token-input" type="password" autocomplete="off"
+                           placeholder="paste token"
+                           class="w-full px-4 py-3 rounded-xl border border-navy-100 bg-ivory-50 text-navy-700 placeholder-navy-300 focus:outline-none focus:ring-4 focus:ring-gold-400/40 focus:border-gold-400 transition" />
+                </div>
+                <button id="unlock-btn"
+                        class="mt-4 w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gold-400 hover:bg-gold-500 text-navy-700 font-bold text-base shadow-gold-lg transition">
+                    <i class="fa-solid fa-key"></i> Unlock
+                </button>
+                <p id="auth-error" class="mt-3 text-red-600 text-sm hidden"></p>
+            </div>
+        </section>
+
+        <!-- Lead dashboard -->
+        <section id="dashboard" class="hidden mt-6">
+            <!-- Filters -->
+            <div class="bg-white rounded-2xl shadow-soft border border-gold-400/40 p-4 sm:p-5 flex flex-col sm:flex-row gap-3 sm:items-end">
+                <div class="flex-1">
+                    <label for="search-input" class="block text-xs font-semibold uppercase tracking-widest text-gold-600 mb-1">Search</label>
+                    <input id="search-input" type="search" placeholder="Name, email or WhatsApp…"
+                           class="w-full px-4 py-2.5 rounded-xl border border-navy-100 bg-ivory-50 text-navy-700 placeholder-navy-300 focus:outline-none focus:ring-4 focus:ring-gold-400/40 focus:border-gold-400 transition" />
+                </div>
+                <div>
+                    <label for="dest-filter" class="block text-xs font-semibold uppercase tracking-widest text-gold-600 mb-1">Destination</label>
+                    <select id="dest-filter"
+                            class="px-4 py-2.5 rounded-xl border border-navy-100 bg-ivory-50 text-navy-700 focus:outline-none focus:ring-4 focus:ring-gold-400/40 focus:border-gold-400 transition">
+                        <option value="">All destinations</option>
+                        <option>UK</option>
+                        <option>USA</option>
+                        <option>Australia</option>
+                        <option>Canada</option>
+                        <option>Europe</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <button id="apply-filters-btn"
+                        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gold-400 hover:bg-gold-500 text-navy-700 font-semibold text-sm shadow-gold transition">
+                    <i class="fa-solid fa-filter"></i> Apply
+                </button>
+            </div>
+
+            <!-- Table -->
+            <div class="mt-6 bg-white rounded-2xl shadow-card border border-gold-400/40 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-navy-700 text-ivory-50">
+                            <tr>
+                                <th class="text-left font-semibold px-4 py-3">When</th>
+                                <th class="text-left font-semibold px-4 py-3">Name</th>
+                                <th class="text-left font-semibold px-4 py-3">Email</th>
+                                <th class="text-left font-semibold px-4 py-3">WhatsApp</th>
+                                <th class="text-left font-semibold px-4 py-3">Destination</th>
+                                <th class="text-left font-semibold px-4 py-3">Source</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leads-tbody" class="divide-y divide-navy-50/80">
+                            <!-- rows injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="empty-state" class="hidden text-center py-16 px-6">
+                    <i class="fa-solid fa-inbox text-gold-500 text-4xl"></i>
+                    <p class="mt-3 font-semibold text-navy-700">No leads yet</p>
+                    <p class="text-navy-500 text-sm">Submissions from your landing page will appear here.</p>
+                </div>
+
+                <div id="loading-row" class="hidden text-center py-10">
+                    <span class="spinner"></span>
+                    <span class="text-navy-500 text-sm">Loading leads…</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-navy-700 text-ivory-50 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm text-ivory-200/80">
+            &copy; 2026 Unicvesity Worldwide — Admin
+        </div>
+    </footer>
+
+    <script>
+    (function () {
+        'use strict';
+
+        // ---- API config (same shape as landing page) ----
+        let API_BASE_URL = 'http://127.0.0.1:8000';
+        try {
+            const cfg = JSON.parse(document.getElementById('app-config-admin')?.textContent || '{}');
+            if (cfg?.apiBaseUrl) API_BASE_URL = cfg.apiBaseUrl.replace(/\/+$/, '');
+        } catch (_) { /* default */ }
+
+        function setApiBaseUrl(url) {
+            if (url) API_BASE_URL = url.replace(/\/+$/, '');
+        }
+
+        // ---- Token management ----
+        // Reads ?token=... if present, otherwise falls back to stored value.
+        let ADMIN_TOKEN = '';
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlToken  = urlParams.get('token');
+        if (urlToken) {
+            ADMIN_TOKEN = urlToken;
+            localStorage.setItem('unicvesity_admin_token', urlToken);
+        } else {
+            ADMIN_TOKEN = localStorage.getItem('unicvesity_admin_token') || '';
+        }
+
+        const authCard   = document.getElementById('auth-card');
+        const dashboard  = document.getElementById('dashboard');
+        const tokenInput = document.getElementById('token-input');
+        const unlockBtn  = document.getElementById('unlock-btn');
+        const authError  = document.getElementById('auth-error');
+
+        const leadsTbody      = document.getElementById('leads-tbody');
+        const leadCountValue  = document.getElementById('lead-count-value');
+        const emptyState      = document.getElementById('empty-state');
+        const loadingRow      = document.getElementById('loading-row');
+        const refreshBtn      = document.getElementById('refresh-btn');
+        const exportLink      = document.getElementById('export-link');
+        const searchInput     = document.getElementById('search-input');
+        const destFilter      = document.getElementById('dest-filter');
+        const applyFiltersBtn = document.getElementById('apply-filters-btn');
+
+        function showDashboard() {
+            authCard.classList.add('hidden');
+            dashboard.classList.remove('hidden');
+            // Update the export link with the current token so admins can save it.
+            exportLink.href = `${API_BASE_URL}/api/admin/leads.csv?_t=${encodeURIComponent(ADMIN_TOKEN)}`;
+        }
+        function showAuth() {
+            authCard.classList.remove('hidden');
+            dashboard.classList.add('hidden');
+        }
+
+        async function authedFetch(path) {
+            const res = await fetch(`${API_BASE_URL}${path}`, {
+                headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` },
+            });
+            if (res.status === 401) throw new Error('unauthorized');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+        }
+
+        async function loadLeads() {
+            loadingRow.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+            leadsTbody.innerHTML = '';
+
+            const params = new URLSearchParams();
+            const q = searchInput.value.trim();
+            const dest = destFilter.value;
+            if (q)   params.set('q', q);
+            if (dest) params.set('destination', dest);
+            params.set('limit', '100');
+
+            try {
+                const leads = await authedFetch(`/api/admin/leads?${params.toString()}`);
+                leadsTbody.innerHTML = '';
+                leadCountValue.textContent = `${leads.length} lead${leads.length === 1 ? '' : 's'}`;
+                if (!leads.length) {
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+                for (const l of leads) {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-ivory-50/60 transition-colors';
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 whitespace-nowrap text-navy-500">${formatDate(l.created_at)}</td>
+                        <td class="px-4 py-3 font-semibold text-navy-700">${escapeHtml(l.name)}</td>
+                        <td class="px-4 py-3"><a class="text-gold-600 hover:text-gold-700 hover:underline" href="mailto:${escapeHtml(l.email)}">${escapeHtml(l.email)}</a></td>
+                        <td class="px-4 py-3 whitespace-nowrap"><a class="text-gold-600 hover:text-gold-700 hover:underline" href="https://wa.me/${escapeHtml(l.whatsapp.replace(/[^\d+]/g,''))}" target="_blank" rel="noopener">${escapeHtml(l.whatsapp)}</a></td>
+                        <td class="px-4 py-3"><span class="inline-flex items-center px-2 py-0.5 rounded-full bg-gold-400/15 text-gold-700 text-xs font-semibold">${escapeHtml(l.destination)}</span></td>
+                        <td class="px-4 py-3 text-navy-500 text-xs">${escapeHtml(l.source || '—')}</td>
+                    `;
+                    leadsTbody.appendChild(tr);
+                }
+            } catch (err) {
+                if (err.message === 'unauthorized') {
+                    localStorage.removeItem('unicvesity_admin_token');
+                    ADMIN_TOKEN = '';
+                    showAuth();
+                    authError.textContent = 'Token is invalid or expired. Paste it again below.';
+                    authError.classList.remove('hidden');
+                } else {
+                    leadsTbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-600">Couldn't reach API: ${err.message}</td></tr>`;
+                }
+            } finally {
+                loadingRow.classList.add('hidden');
+            }
+        }
+
+        function escapeHtml(s) {
+            if (s == null) return '';
+            return String(s).replace(/[&<>"']/g, c => ({
+                '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+            }[c]));
+        }
+        function formatDate(iso) {
+            try {
+                const d = new Date(iso);
+                return d.toLocaleString();
+            } catch { return iso; }
+        }
+
+        // ---- Wire up UI ----
+        unlockBtn.addEventListener('click', () => {
+            const v = tokenInput.value.trim();
+            if (!v) {
+                authError.textContent = 'Please paste a token.';
+                authError.classList.remove('hidden');
+                return;
+            }
+            ADMIN_TOKEN = v;
+            localStorage.setItem('unicvesity_admin_token', v);
+            authError.classList.add('hidden');
+            loadLeads().then(showDashboard).catch(() => {});
+        });
+
+        tokenInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') unlockBtn.click();
+        });
+
+        refreshBtn.addEventListener('click', loadLeads);
+        applyFiltersBtn.addEventListener('click', loadLeads);
+        searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadLeads(); });
+
+        // If we already have a token, try the API on load.
+        if (ADMIN_TOKEN) {
+            loadLeads().then(showDashboard).catch(() => showAuth());
+        } else {
+            showAuth();
+        }
+    })();
+    </script>
+
+    <!-- Hidden API config — change in one place if your backend moves -->
+    <script type="application/json" id="app-config-admin">
+    { "apiBaseUrl": "http://127.0.0.1:8000" }
+    </script>
+</body>
+</html>

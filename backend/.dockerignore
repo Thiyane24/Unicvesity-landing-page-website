@@ -1,0 +1,36 @@
+# Keep the build context tiny and avoid leaking secrets into images.
+
+# Local dev artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.env
+.venv
+
+# Build & test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+*.egg-info/
+dist/
+build/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Data — never bake lead test data into an image
+data/
+*.db
+*.sqlite
+*.sqlite3
