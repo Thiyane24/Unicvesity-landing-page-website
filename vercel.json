@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://unicvesity-api.onrender.com/api/$1"
+      "destination": "https://unicvesity-landing-page-website.onrender.com/api/$1"
     }
   ],
   "headers": [
