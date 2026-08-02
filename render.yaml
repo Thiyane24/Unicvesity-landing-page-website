@@ -30,13 +30,10 @@ services:
         value: https://unicvesity-landing-page-website-dem-eight.vercel.app
       - key: ADMIN_TOKEN
         value: UnicvesityAdminToken123
-      # ---- Supabase Postgres (Supavisor pooler, transaction mode, port 6543) ----
-      # SQLAlchemy URL format: postgresql+psycopg://user:pass@host:port/db
-      # sslmode=require is mandatory for the Supavisor pooler.
-      # IMPORTANT: the whole value MUST be quoted because the password contains '!',
-      # which YAML treats as a tag indicator and would otherwise corrupt the URL.
-      - key: DATABASE_URL
-        value: "postgresql+psycopg://postgres.hanuoushtcafdfilqcyh:Unicvesity1!@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?sslmode=require"
+      # ---- DATABASE_URL is intentionally NOT in this file. ----
+      # The Supabase connection string contains a password with special characters
+      # that YAML/env-vars can mangle. Set DATABASE_URL directly in the Render
+      # dashboard (Environment tab) so no parser is in the loop.
       - key: WORKERS
         value: "2"
       - key: PORT
