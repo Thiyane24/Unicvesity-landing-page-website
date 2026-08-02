@@ -67,9 +67,11 @@ def _startup() -> None:
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-        logger.info("✅ Database connection OK (%s)", settings.DATABASE_URL)
+        logger.info("✅ Database connection OK")
     except Exception as exc:  # pragma: no cover
         logger.error("❌ Database connection FAILED: %s", exc)
+        # Do NOT re-raise: keep the worker alive so /api/health can return a
+        # useful 503 instead of crashing the gunicorn boot loop.
 
 
 # ---------------------------------------------------------------------
