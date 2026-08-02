@@ -537,115 +537,176 @@
          - Lead-form submission simulation
            (proves tech infra: success state + console JSON payload)
     ============================================================ -->
-<script>
-    (function () {
-        'use strict';
+    <script>
+        (function () {
+            'use strict';
 
-        /* ----------------------------------------------------------
-           1) IntersectionObserver — fade-in / slide-up on scroll
-        ---------------------------------------------------------- */
-        const revealEls = document.querySelectorAll('.reveal');
-        if (!('IntersectionObserver' in window)) {
-            revealEls.forEach((el) => el.classList.add('is-visible'));
-        } else {
-            const io = new IntersectionObserver(
-                (entries) => {
-                    entries.forEach((entry) => {
-                        if (entry.isIntersecting) {
-                            entry.target.classList.add('is-visible');
-                            io.unobserve(entry.target);
-                        }
-                    });
-                },
-                { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
-            );
-            revealEls.forEach((el) => io.observe(el));
-        }
+            /* ----------------------------------------------------------
+               1) IntersectionObserver — fade-in / slide-up on scroll
+               Targets any element with the `.reveal` class.
+            ---------------------------------------------------------- */
+            const revealEls = document.querySelectorAll('.reveal');
 
-        /* ----------------------------------------------------------
-           2) Lead form submission (Simulated for Client Demo)
-        ---------------------------------------------------------- */
-        const form         = document.getElementById('lead-form');
-        const formState    = document.getElementById('form-state');
-        const successState = document.getElementById('success-state');
-        const submitBtn    = document.getElementById('submit-btn');
-        const submitLabel  = document.getElementById('submit-label');
+            // Fallback for very old browsers — just show everything.
+            if (!('IntersectionObserver' in window)) {
+                revealEls.forEach((el) => el.classList.add('is-visible'));
+            } else {
+                const io = new IntersectionObserver(
+                    (entries) => {
+                        entries.forEach((entry) => {
+                            if (entry.isIntersecting) {
+                                entry.target.classList.add('is-visible');
+                                io.unobserve(entry.target); // only animate once
+                            }
+                        });
+                    },
+                    { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+                );
+                revealEls.forEach((el) => io.observe(el));
+            }
 
-        function setLoading() {
-            submitBtn.disabled = true;
-            submitBtn.classList.add('opacity-90', 'cursor-not-allowed');
-            submitLabel.innerHTML = '<span class="spinner" aria-hidden="true"></span>Processing...';
-        }
 
-        function setIdle() {
-            submitBtn.disabled = false;
-            submitBtn.classList.remove('opacity-90', 'cursor-not-allowed');
-            submitLabel.textContent = 'Submit Application';
-        }
+            /* ----------------------------------------------------------
+               2) Lead form submission (real fetch to FastAPI backend)
+               - preventDefault
+               - POST /api/leads
+               - Loading state while in-flight
+               - Success → swap to success card
+               - Server / network error → swap to error card with retry
+            ---------------------------------------------------------- */
+            const form         = document.getElementById('lead-form');
+            const formState    = document.getElementById('form-state');
+            const successState = document.getElementById('success-state');
+            const errorState   = document.getElementById('error-state');
+            const errorMessage = document.getElementById('error-message');
+            const retryBtn     = document.getElementById('retry-btn');
+            const submitBtn    = document.getElementById('submit-btn');
+            const submitLabel  = document.getElementById('submit-label');
 
-        if (form) {
-            form.addEventListener('submit', function (e) {
-                e.preventDefault();
-
-                if (!form.checkValidity()) {
-                    form.reportValidity();
-                    return;
+            // Read the API base URL from the in-page config block.
+            // Defaults to the local FastAPI dev server.
+            let API_BASE_URL = 'http://127.0.0.1:8000';
+            try {
+                const cfgNode = document.getElementById('app-config');
+                if (cfgNode && cfgNode.textContent.trim()) {
+                    const cfg = JSON.parse(cfgNode.textContent);
+                    if (cfg && typeof cfg.apiBaseUrl === 'string' && cfg.apiBaseUrl) {
+                        API_BASE_URL = cfg.apiBaseUrl.replace(/\/+$/, '');
+                    }
                 }
+            } catch (err) { /* keep default */ }
 
-                // Collect the payload
-                const payload = {
-                    name:        form.name.value.trim(),
-                    whatsapp:    form.whatsapp.value.trim(),
-                    email:       form.email.value.trim(),
-                    destination: form.destination.value,
-                    source:      'unicvesity-landing-page',
-                };
+            function setLoading() {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-90', 'cursor-not-allowed');
+                submitLabel.innerHTML = '<span class="spinner" aria-hidden="true"></span>Processing...';
+            }
 
-                // Trigger Loading state
-                setLoading();
+            function setIdle() {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-90', 'cursor-not-allowed');
+                submitLabel.textContent = 'Submit Application';
+            }
 
-                // Simulate a 1.5 second network request so the client sees the loading animation
-                setTimeout(() => {
-                    // Audit log to prove to the client the data is ready for a CRM
-                    console.log('[Unicvesity] Lead packaged as JSON for CRM →', JSON.stringify(payload, null, 2));
-
-                    // Swap to sleek success UI
-                    formState.classList.add('hidden');
-                    successState.classList.remove('hidden');
-                    successState.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    
-                    setIdle();
-                }, 1500);
-            });
-        }
-
-        /* ----------------------------------------------------------
-           3) Video overlay — Play with SOUND enabled
-        ---------------------------------------------------------- */
-        const overlay = document.querySelector('.play-overlay');
-        const video   = document.querySelector('video');
-        
-        if (overlay && video) {
-            overlay.addEventListener('click', () => {
-                // Fade out and hide the overlay
-                overlay.style.opacity = '0';
-                setTimeout(() => overlay.style.display = 'none', 300);
-                
-                // Play the video normally (No muting applied!)
-                video.play().catch((err) => { 
-                    console.log('Video play interrupted:', err); 
+            async function submitLead(payload) {
+                const url = `${API_BASE_URL}/api/leads`;
+                const res = await fetch(url, {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify(payload),
                 });
-            });
 
-            // Allow accessibility keyboard controls
-            overlay.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    overlay.click();
+                let detail = null;
+                try { detail = await res.json(); } catch (_) { /* non-JSON */ }
+
+                if (!res.ok) {
+                    // FastAPI returns {detail: "..."} or {detail: [{loc, msg}, ...]}
+                    let msg = 'We couldn\'t submit your details. Please try again.';
+                    if (detail) {
+                        if (typeof detail.detail === 'string') msg = detail.detail;
+                        else if (Array.isArray(detail.detail) && detail.detail[0]?.msg) msg = detail.detail[0].msg;
+                    }
+                    throw new Error(msg);
                 }
-            });
-        }
-    })();
-</script>
+                return detail;
+            }
+
+            if (form) {
+                form.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+
+                    // Native validation first (browser tooltip if invalid)
+                    if (!form.checkValidity()) {
+                        form.reportValidity();
+                        return;
+                    }
+
+                    // ---- Collect the payload (matches FastAPI /api/leads body schema) ----
+                    const payload = {
+                        name:        form.name.value.trim(),
+                        whatsapp:    form.whatsapp.value.trim(),
+                        email:       form.email.value.trim(),
+                        destination: form.destination.value,
+                        source:      'unicvesity-landing-page',
+                    };
+
+                    // ---- Loading state ----
+                    setLoading();
+                    // Hide error card if the user is retrying
+                    errorState.classList.add('hidden');
+
+                    try {
+                        const data = await submitLead(payload);
+                        // 1) Audit log — useful in prod too
+                        console.log('[Unicvesity] Lead saved →', data);
+
+                        // 2) Swap to sleek success UI
+                        formState.classList.add('hidden');
+                        successState.classList.remove('hidden');
+                        successState.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    } catch (err) {
+                        console.error('[Unicvesity] Lead submit failed →', err);
+                        if (errorMessage) errorMessage.textContent = err.message || 'Network error. Please try again.';
+                        formState.classList.add('hidden');
+                        errorState.classList.remove('hidden');
+                        errorState.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setIdle();
+                    }
+                });
+            }
+
+            // Retry button → restore form view
+            if (retryBtn) {
+                retryBtn.addEventListener('click', () => {
+                    errorState.classList.add('hidden');
+                    formState.classList.remove('hidden');
+                    setIdle();
+                });
+            }
+
+
+            /* ----------------------------------------------------------
+               3) Video overlay — decorative "play" toggles the video
+               (Pure UX demo since no real video file is bundled.)
+            ---------------------------------------------------------- */
+            const overlay = document.querySelector('.play-overlay');
+            const video   = document.querySelector('video');
+            if (overlay && video) {
+                overlay.addEventListener('click', () => {
+                    overlay.style.opacity = '0';
+                    setTimeout(() => overlay.style.display = 'none', 300);
+                    video.muted = true;
+                    video.play().catch(() => { /* autoplay blocked — ignore */ });
+                });
+                overlay.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        overlay.click();
+                    }
+                });
+            }
+
+        })();
+    </script>
 </body>
 </html>
