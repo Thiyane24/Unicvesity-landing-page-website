@@ -18,7 +18,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 # otherwise the API rejects the submission with a 422.
 # ---------------------------------------------------------------------
 ALLOWED_DESTINATIONS = {
-    "UK", "USA", "Australia", "Canada", "Europe", "Other",
+    "UK", "Malaysia", "Australia", "Canada", "Europe", "Other",
 }
 
 
